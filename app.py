@@ -12,7 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 # --- CONFIGURATION ---
 # REPLACE THE TEXT BELOW WITH YOUR ACTUAL API KEY
 # Judges: Please paste your own Google Gemini API Key here
-os.environ["GOOGLE_API_KEY"] = "AIzaSyCgvcnF3GXnKMYAvwxBm6sPjxP5DvN32aA"
+os.environ["GOOGLE_API_KEY"] = "PASTE_YOUR_NEW_KEY_HERE"
 
 # --- UI SETUP ---
 st.set_page_config(page_title="HR Assistant", layout="wide")
