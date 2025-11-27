@@ -1,0 +1,15 @@
+# COMPANY LEAVE POLICY
+1. Casual Leave (CL): Employees are entitled to 12 days of CL per year. CL cannot be taken for more than 3 consecutive days.
+2. Sick Leave (SL): 10 days of paid sick leave per year. A medical certificate is required for more than 2 days of SL.
+3. Maternity Leave: Female employees are entitled to 26 weeks of paid maternity leave.
+4. Paternity Leave: Male employees are entitled to 5 days of paid paternity leave.
+
+# REMOTE WORK POLICY
+- Employees are allowed 2 days of Work From Home (WFH) per week.
+- Core working hours are 10:00 AM to 4:00 PM.
+- All remote employees must be available on Slack/Teams during core hours.
+
+# EXPENSE REIMBURSEMENT
+- Travel: Economy class for domestic flights. Approval required for international.
+- Food: Daily allowance of $50 when traveling for business.
+- Internet: $30 monthly reimbursement for remote employees.
