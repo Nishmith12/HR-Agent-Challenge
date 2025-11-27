@@ -10,7 +10,6 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 
 # --- CONFIGURATION ---
-# This tiny check keeps your Cloud App working AND your GitHub safe.
 if "GOOGLE_API_KEY" in st.secrets:
     os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 else:
@@ -18,29 +17,42 @@ else:
     os.environ["GOOGLE_API_KEY"] = "PASTE_YOUR_NEW_KEY_HERE"
 
 # --- UI SETUP ---
-st.set_page_config(page_title="HR Assistant", layout="wide")
-st.title("🤖 HR Policy Assistant")
-st.markdown("I answer questions based strictly on our Company Handbook.")
+st.set_page_config(page_title="HR Policy Genie", page_icon="🧞", layout="wide")
+
+# --- SIDEBAR (The "Pro" Feel) ---
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/4712/4712035.png", width=100)
+    st.title("HR Policy Genie")
+    st.markdown("---")
+    st.markdown("**Status:** 🟢 Online")
+    st.markdown("**Model:** Gemini 2.5 Flash")
+    st.markdown("**Knowledge Base:** Employee Handbook v2.0")
+    
+    st.markdown("---")
+    if st.button("🧹 Clear Chat History"):
+        st.session_state.messages = []
+        st.rerun()
+
+# --- MAIN PAGE ---
+st.title("🧞 HR Policy Assistant")
+st.markdown("Ask me anything about leaves, WFH, or expenses. I show my sources!")
 
 # --- 1. LOAD DATA & CREATE VECTORS ---
 @st.cache_resource
 def get_vector_store():
-    # Load the text file
     loader = TextLoader("hr_policy.txt")
     docs = loader.load()
     
-    # Split text into smaller chunks
+    # Split text into smaller chunks for better accuracy
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     splits = text_splitter.split_documents(docs)
     
-    # Create Vector Store (The Brain) using Google Embeddings
     vectorstore = FAISS.from_documents(
         documents=splits, 
         embedding=GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
     )
     return vectorstore
 
-# Initialize the Knowledge Base
 try:
     vectorstore = get_vector_store()
     retriever = vectorstore.as_retriever()
@@ -49,15 +61,13 @@ except Exception as e:
     st.stop()
 
 # --- 2. SETUP THE AI ---
-# We use Gemini 2.5 Flash (Verified working model)
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
 
-# The System Prompt restricts the AI to ONLY use the provided context
 system_prompt = (
-    "You are an HR Assistant. "
-    "Use the following pieces of retrieved context to answer the question. "
+    "You are an HR Policy Expert called 'HR Genie'. "
+    "Use the retrieved context to answer the question. "
     "If the answer is not in the context, say 'I cannot find that in the policy documents.' "
-    "Keep answers concise."
+    "Keep answers professional and concise."
     "\n\n"
     "{context}"
 )
@@ -67,7 +77,6 @@ prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}"),
 ])
 
-# Create the chain: Retrieval -> Prompt -> LLM
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
@@ -75,26 +84,50 @@ rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display previous messages
+# Display chat history with custom avatars
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    if message["role"] == "user":
+        with st.chat_message("user", avatar="🧑‍💻"):
+            st.markdown(message["content"])
+    else:
+        with st.chat_message("assistant", avatar="🧞"):
+            st.markdown(message["content"])
+            # If there are sources stored, show them
+            if "sources" in message:
+                with st.expander("🔎 View Verified Sources"):
+                    st.info(message["sources"])
 
 # Handle new user input
-if user_input := st.chat_input("Ask about leaves, WFH, or expenses..."):
+if user_input := st.chat_input("Ex: What is the travel food allowance?"):
     # Show user message
     st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar="🧑‍💻"):
         st.markdown(user_input)
 
     # Generate response
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
+    with st.chat_message("assistant", avatar="🧞"):
+        with st.spinner("Searching Company Policy..."):
             try:
                 response = rag_chain.invoke({"input": user_input})
                 answer = response['answer']
+                
+                # FEATURE: EXTRACT SOURCES
+                # We combine the retrieved text chunks into a single string to show the user
+                source_text = ""
+                for i, doc in enumerate(response["context"]):
+                    source_text += f"**Source Chunk {i+1}:**\n{doc.page_content}\n\n"
+                
                 st.markdown(answer)
-                # Save response
-                st.session_state.messages.append({"role": "assistant", "content": answer})
+                
+                # Show the "Wow" feature
+                with st.expander("🔎 View Verified Sources"):
+                    st.info(source_text)
+                
+                # Save response AND sources to history
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": answer, 
+                    "sources": source_text
+                })
             except Exception as e:
                 st.error(f"An error occurred: {e}")
