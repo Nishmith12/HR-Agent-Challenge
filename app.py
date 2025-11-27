@@ -10,9 +10,12 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 
 # --- CONFIGURATION ---
-# REPLACE THE TEXT BELOW WITH YOUR ACTUAL API KEY
-# Judges: Please paste your own Google Gemini API Key here
-os.environ["GOOGLE_API_KEY"] = "PASTE_YOUR_NEW_KEY_HERE"
+# This tiny check keeps your Cloud App working AND your GitHub safe.
+if "GOOGLE_API_KEY" in st.secrets:
+    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+else:
+    # Judges: Please paste your own Google Gemini API Key here
+    os.environ["GOOGLE_API_KEY"] = "PASTE_YOUR_NEW_KEY_HERE"
 
 # --- UI SETUP ---
 st.set_page_config(page_title="HR Assistant", layout="wide")
@@ -46,8 +49,9 @@ except Exception as e:
     st.stop()
 
 # --- 2. SETUP THE AI ---
-# We use Gemini Flash (Fast & Free)
+# We use Gemini 2.5 Flash (Verified working model)
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+
 # The System Prompt restricts the AI to ONLY use the provided context
 system_prompt = (
     "You are an HR Assistant. "
@@ -86,9 +90,11 @@ if user_input := st.chat_input("Ask about leaves, WFH, or expenses..."):
     # Generate response
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            response = rag_chain.invoke({"input": user_input})
-            answer = response['answer']
-            st.markdown(answer)
-            
-    # Save response
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+            try:
+                response = rag_chain.invoke({"input": user_input})
+                answer = response['answer']
+                st.markdown(answer)
+                # Save response
+                st.session_state.messages.append({"role": "assistant", "content": answer})
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
